@@ -467,6 +467,7 @@ func evade_hostname()(bool){
 	return false;
 }
 
+
 func passed(evading_func string)(){
 	fmt.Println("[+] Evaded ", evading_func, "\n")
 }
@@ -549,13 +550,13 @@ func main() {
 	} else {
 		failed("clicks_count")
 	}
-	fmt.Println(("Evading Idle Time"))
+	fmt.Println(("Evading Time Acceleration"))
 	if !evade_time_acceleration() {
-		passed("idle_time")
+		passed("Time Acceleration")
 	} else {
-		failed("idle_time")
+		failed("Time Acceleration")
 	}
-	fmt.Scanf("")
+	fmt.Scanf("Done...")
 }
 
 

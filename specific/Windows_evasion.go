@@ -273,10 +273,7 @@ func evade_tmp() (bool) {
 			-
 	*/
 	minimum_files := 15
-	tmp_dir := "/tmp"
-	if runtime.GOOS == "windows" {
-		tmp_dir = `C:\windows\temp`
-	}
+	tmp_dir := `C:\windows\temp`
 	files, _ := ioutil.ReadDir(tmp_dir)
 
 	if len(files) < minimum_files { return true }
@@ -467,57 +464,4 @@ func evade_hostname()(bool){
 func main() {
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
