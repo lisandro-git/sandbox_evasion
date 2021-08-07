@@ -2,7 +2,7 @@
 
 Code intended to evade Sandboxes. </br>
 This is a module of my own Ransomware that is available here :
-https://github.com/lisandro-git/Lets_Cry_of_Joy </br>
+https://github.com/lisandro-git/LCJ </br>
 
 It also contains a test version of the code, with verbose, that can be used to see if the computer is recognised as a Sandbox or not
 
@@ -10,17 +10,16 @@ It also contains a test version of the code, with verbose, that can be used to s
 
 |   Evasion Techniques   | Windows | Linux |
 |------------------------|---------|-------|
-|evade_vm_files          |  - [x]  | - [x] |
-|evade_hostname          |  - [x]  | - [x] |
-|evade_mac               |  - [x]  | - [x] |
-|evade_cpu_count         |  - [x]  | - [x] |
-|evade_time_acceleration |  - [x]  | - [x] |
-|evade_tmp               |  - [x]  | - [x] |
-|evade_utc               |  - [x]  | - [x] |
-|evade_disk_size         |  - [x]  | - [x] |
-|evade_screen_size       |  - [x]  | - [ ] |
-|evade_foreground_window |  - [x]  | - [ ] |
-|evade_system_memory     |  - [x]  | - [ ] |
-|evade_printer           |  - [x]  | - [ ] |
-|evade_clicks_count      |  - [x]  | - [ ] |
- 
+|evade_vm_files          |  ✅  | ✅ |
+|evade_hostname          |  ✅  | ✅ |
+|evade_mac               |  ✅  | ✅ |
+|evade_cpu_count         |  ✅  | ✅ |
+|evade_time_acceleration |  ✅  | ✅ |
+|evade_tmp               |  ✅  | ✅ |
+|evade_utc               |  ✅  | ✅ |
+|evade_disk_size         |  ✅  | ✅ |
+|evade_screen_size       |  ✅  |  ⬜️ |
+|evade_foreground_window |  ✅  |  ⬜️ |
+|evade_system_memory     |  ✅  |  ⬜️ |
+|evade_printer           |  ✅  |  ⬜️ |
+|evade_clicks_count      |  ✅  |  ⬜️ |
