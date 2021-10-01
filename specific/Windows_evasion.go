@@ -25,7 +25,7 @@ var (
 	getSystemMetrics        = user32.NewProc("GetSystemMetrics")
 	GetDiskFreeSpaceExW     = kernel_32.MustFindProc("GetDiskFreeSpaceExW")
 	globalMemoryStatusEx, _ = kernel_32.FindProc("GlobalMemoryStatusEx")
-	getAsyncKeyState 		= user32.NewProc("GetAsyncKeyState")
+	getAsyncKeyState        = user32.NewProc("GetAsyncKeyState")
 	sandbox_files           = []string{
 		// edode : according to https://evasions.checkpoint.com/techniques/filesystem.html#check-if-specific-files-exist
 
@@ -67,30 +67,29 @@ var (
 		"drivers\\prl_pv32.sys",
 		"drivers\\prl_paravirt_32.sys",
 	}
-	sandbox_mac_addresses 	= []string {
-	"08:00:27", // VMWare
-	"00:0C:29", // VMWare
-	"00:1C:14", // VMWare
-	"00:50:56", // VMWare
-	"00:05:69", // VMWare
-	"08:00:27", // VirtualBox
-	"00:16:3E", // Xensources
-	"00:1C:42", // Parallels
-	"00:03:FF", // Microsoft
-	"F0:1F:AF", // Dell
-}
-	sandbox_hostname 		= []string {
-	"Sandbox",
-	"Cuckoo",
-	"Maltest",
-	"Malware",
-	"malsand",
-	"ClonePC",
-	"Fortinet",
-	"Fortisandbox",
-	"VIRUS",
-}
-
+	sandbox_mac_addresses = []string{
+		"08:00:27", // VMWare
+		"00:0C:29", // VMWare
+		"00:1C:14", // VMWare
+		"00:50:56", // VMWare
+		"00:05:69", // VMWare
+		"08:00:27", // VirtualBox
+		"00:16:3E", // Xensources
+		"00:1C:42", // Parallels
+		"00:03:FF", // Microsoft
+		"F0:1F:AF", // Dell
+	}
+	sandbox_hostname = []string{
+		"Sandbox",
+		"Cuckoo",
+		"Maltest",
+		"Malware",
+		"malsand",
+		"ClonePC",
+		"Fortinet",
+		"Fortisandbox",
+		"VIRUS",
+	}
 )
 
 type memStatusEx struct {
@@ -100,17 +99,21 @@ type memStatusEx struct {
 	unused       [6]uint64
 }
 
-func is_dir(path string)(bool){
+func is_dir(path string) bool {
 	name := path
 	fi, err := os.Stat(name)
-	if err != nil { return true }
-	if fi.IsDir() {	return false }
+	if err != nil {
+		return true
+	}
+	if fi.IsDir() {
+		return false
+	}
 	return false
 }
 
-func get_drives() (r []string){
-	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ"{
-		f, err := os.Open(string(drive)+":\\")
+func get_drives() (r []string) {
+	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
+		f, err := os.Open(string(drive) + ":\\")
 		if err == nil {
 			r = append(r, string(drive))
 			f.Close()
@@ -119,19 +122,21 @@ func get_drives() (r []string){
 	return
 }
 
-func is_connected() (bool) {
+func is_connected() bool {
 	_, err := http.Get("http://1.1.1.1")
-	if err == nil { return true }
+	if err == nil {
+		return true
+	}
 	return false
 }
 
-func get_window(funcName string) (uintptr) {
+func get_window(funcName string) uintptr {
 	proc := user32.NewProc(funcName)
 	hwnd, _, _ := proc.Call()
 	return hwnd
 }
 
-func get_ntp_time() (time.Time) {
+func get_ntp_time() time.Time {
 	type ntp struct {
 		FirstByte, A, B, C uint8
 		D, E, F            uint32
@@ -164,7 +169,7 @@ func get_mac_address() ([]string, error) {
 	return as, nil
 }
 
-func evade_vm_files()(bool, int){
+func evade_vm_files() (bool, int) {
 	/*
 		Purpose :
 			Checks a VM file is present on the system
@@ -177,18 +182,20 @@ func evade_vm_files()(bool, int){
 			- is_dir
 	*/
 	var files_detected int
-	for _, drives := range (get_drives()){
-		for _, files := range(sandbox_files){
-			if !is_dir(drives+":\\Windows\\System32\\" + files){
+	for _, drives := range get_drives() {
+		for _, files := range sandbox_files {
+			if !is_dir(drives + ":\\Windows\\System32\\" + files) {
 				files_detected++
 			}
 		}
 	}
-	if files_detected > 0 { return true, files_detected }
+	if files_detected > 0 {
+		return true, files_detected
+	}
 	return false, files_detected
 }
 
-func evade_screen_size()(bool) {
+func evade_screen_size() bool {
 	/*
 		Purpose :
 			Detects the screen size
@@ -204,11 +211,13 @@ func evade_screen_size()(bool) {
 	index_y := uintptr(1)
 	x, _, _ := getSystemMetrics.Call(index_x)
 	y, _, _ := getSystemMetrics.Call(index_y)
-	if x < 1024 || y < 768 { return true }
-	return false;
+	if x < 1024 || y < 768 {
+		return true
+	}
+	return false
 }
 
-func evade_foreground_window()(bool){
+func evade_foreground_window() bool {
 	/*
 		Purpose :
 			Detects if the user as changed window in the last 60 seconds
@@ -221,16 +230,18 @@ func evade_foreground_window()(bool){
 	*/
 	var temp uintptr
 	for i := 0; i <= 20; i++ {
-		if hwnd := get_window("GetForegroundWindow") ; hwnd != 0 {
-			if hwnd != temp && temp != 0 { return true }
+		if hwnd := get_window("GetForegroundWindow"); hwnd != 0 {
+			if hwnd != temp && temp != 0 {
+				return true
+			}
 			temp = hwnd
 		}
 		time.Sleep(time.Second * 10)
 	}
-	return false;
+	return false
 }
 
-func evade_disk_size ()(bool){
+func evade_disk_size() bool {
 	/*
 		Purpose :
 			Checks the system's storage space
@@ -252,16 +263,18 @@ func evade_disk_size ()(bool){
 		uintptr(unsafe.Pointer(&avail)),
 	)
 
-	total_disk_size := total/1024/1024/1024
+	total_disk_size := total / 1024 / 1024 / 1024
 
 	var i int64 = 0
-	for ; i < 500; i = i + 10{
-		if i == total_disk_size{ return true }
+	for ; i < 500; i = i + 10 {
+		if i == total_disk_size {
+			return true
+		}
 	}
-	return false;
+	return false
 }
 
-func evade_tmp() (bool) {
+func evade_tmp() bool {
 	/*
 		Purpose :
 			Checks if there is a minimum of temporary files in the temp folders
@@ -276,11 +289,13 @@ func evade_tmp() (bool) {
 	tmp_dir := `C:\windows\temp`
 	files, _ := ioutil.ReadDir(tmp_dir)
 
-	if len(files) < minimum_files { return true }
+	if len(files) < minimum_files {
+		return true
+	}
 	return false
 }
 
-func evade_utc() (bool) {
+func evade_utc() bool {
 	/*
 		Purpose :
 			Checks the offset of the time zone
@@ -292,11 +307,13 @@ func evade_utc() (bool) {
 			-
 	*/
 	_, offset := time.Now().Zone()
-	if offset == 0 { return true }
+	if offset == 0 {
+		return true
+	}
 	return false
 }
 
-func evade_time_acceleration() (bool) {
+func evade_time_acceleration() bool {
 	/*
 		Purpose :
 			Malware stays idl for a certain amount of time to evade the sandbox
@@ -310,25 +327,29 @@ func evade_time_acceleration() (bool) {
 	*/
 	idle_time := 60
 
-	if is_connected(){
+	if is_connected() {
 		first_time := get_ntp_time()
 		time.Sleep(time.Duration(idle_time*1000) * time.Millisecond)
 
 		second_time := get_ntp_time()
 		difference := second_time.Sub(first_time).Seconds()
 
-		if difference < float64(idle_time) { return true }
+		if difference < float64(idle_time) {
+			return true
+		}
 	} else {
 		first_time := time.Now()
 		time.Sleep(time.Duration(idle_time*1000) * time.Millisecond)
 		second_time := time.Since(first_time)
 
-		if time.Duration(second_time).Seconds() < float64(idle_time){ return true }
+		if time.Duration(second_time).Seconds() < float64(idle_time) {
+			return true
+		}
 	}
 	return false
 }
 
-func evade_system_memory() (bool) {
+func evade_system_memory() bool {
 	/*
 		Purpose :
 			checking the system's RAM memory
@@ -339,19 +360,21 @@ func evade_system_memory() (bool) {
 		linked functions :
 			-
 	*/
-	msx := &memStatusEx{ dwLength: 64 }
+	msx := &memStatusEx{dwLength: 64}
 	r, _, _ := globalMemoryStatusEx.Call(uintptr(unsafe.Pointer(msx)))
-	if r == 0 { return false }
+	if r == 0 {
+		return false
+	}
 
-	system_memory := float64(msx.ullTotalPhys/1024/1024) /1024
+	system_memory := float64(msx.ullTotalPhys/1024/1024) / 1024
 
-	if int(math.Ceil(system_memory)) % 2 == 1 || system_memory <= 2{
+	if int(math.Ceil(system_memory))%2 == 1 || system_memory <= 2 {
 		return true
 	}
 	return false
 }
 
-func evade_printer()(bool){
+func evade_printer() bool {
 	/*
 		Purpose :
 			Checks wether a printer has been installed in the machine
@@ -370,20 +393,24 @@ func evade_printer()(bool){
 	defer key.Close()
 
 	key_stat, err := key.Stat()
-	if err != nil { return true }
+	if err != nil {
+		return true
+	}
 
-	if key_stat.SubKeyCount <= 3{ return true }
+	if key_stat.SubKeyCount <= 3 {
+		return true
+	}
 	return false
 }
 
-func evade_cpu_count()(bool){
+func evade_cpu_count() bool {
 	if runtime.NumCPU() <= 2 {
 		return true
 	}
 	return false
 }
 
-func evade_clicks_count()(bool){
+func evade_clicks_count() bool {
 	/*
 		Purpose :
 			Checks if there is any user clicks
@@ -398,23 +425,25 @@ func evade_clicks_count()(bool){
 	var count int
 	var max_idle_time = 120
 	t := time.Now()
-	for count <= 10  {
+	for count <= 10 {
 		left_click, _, _ := getAsyncKeyState.Call(uintptr(0x1))
 		right_click, _, _ := getAsyncKeyState.Call(uintptr(0x2))
-		if left_click % 2 == 1 {
+		if left_click%2 == 1 {
 			count += 1
 			t = time.Now()
 		}
-		if right_click % 2 == 1 {
+		if right_click%2 == 1 {
 			count += 1
 			t = time.Now()
 		}
-		if int(time.Since(t).Seconds()) > max_idle_time { return true }
+		if int(time.Since(t).Seconds()) > max_idle_time {
+			return true
+		}
 	}
-	return false;
+	return false
 }
 
-func evade_mac()(bool){
+func evade_mac() bool {
 	/*
 		source :
 			- https://search.unprotect.it/technique/detecting-mac-address/
@@ -428,7 +457,7 @@ func evade_mac()(bool){
 		log.Fatal(err)
 	}
 	var is_vm bool
-	for _, s:= range sandbox_mac_addresses {
+	for _, s := range sandbox_mac_addresses {
 		for _, a := range as {
 			str := strings.ToUpper(a)
 			if str[0:8] == s[0:8] {
@@ -436,11 +465,13 @@ func evade_mac()(bool){
 			}
 		}
 	}
-	if is_vm { return true }
+	if is_vm {
+		return true
+	}
 	return false
 }
 
-func evade_hostname()(bool){
+func evade_hostname() bool {
 	/*
 		source :
 			- https://github.com/Arvanaghi/CheckPlease/blob/master/Go/hostname.go
@@ -453,15 +484,14 @@ func evade_hostname()(bool){
 	if errorout != nil {
 		os.Exit(1)
 	}
-	for _, host := range(sandbox_hostname){
+	for _, host := range sandbox_hostname {
 		if strings.Contains(strings.ToLower(hostname), strings.ToLower(host)) {
-			return true;
+			return true
 		}
 	}
-	return false;
+	return false
 }
 
 func main() {
 
 }
-

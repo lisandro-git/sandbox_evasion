@@ -9,8 +9,7 @@ import (
 
 // edode : if a value returns "true", this means that the code is running in a sandbox
 
-
-var sandbox_mac_addresses = []string {
+var sandbox_mac_addresses = []string{
 	"08:00:27", // VMWare
 	"00:0C:29", // VMWare
 	"00:1C:14", // VMWare
@@ -22,6 +21,7 @@ var sandbox_mac_addresses = []string {
 	"00:03:FF", // Microsoft
 	"F0:1F:AF", // Dell
 }
+
 func get_mac_address() ([]string, error) {
 	ifas, err := net.Interfaces()
 	if err != nil {
@@ -37,7 +37,7 @@ func get_mac_address() ([]string, error) {
 	return as, nil
 }
 
-func evade_mac()(bool){
+func evade_mac() bool {
 	/*
 		source :
 			- https://search.unprotect.it/technique/detecting-mac-address/
@@ -51,7 +51,7 @@ func evade_mac()(bool){
 		log.Fatal(err)
 	}
 	var is_vm bool
-	for _, s:= range sandbox_mac_addresses {
+	for _, s := range sandbox_mac_addresses {
 		for _, a := range as {
 			str := strings.ToUpper(a)
 			if str[0:8] == s[0:8] {
@@ -59,11 +59,13 @@ func evade_mac()(bool){
 			}
 		}
 	}
-	if is_vm { return true }
+	if is_vm {
+		return true
+	}
 	return false
 }
 
-var sandbox_hostname = []string {
+var sandbox_hostname = []string{
 	"Sandbox",
 	"Cuckoo",
 	"Maltest",
@@ -74,7 +76,8 @@ var sandbox_hostname = []string {
 	"Fortisandbox",
 	"VIRUS",
 }
-func evade_hostname()(bool){
+
+func evade_hostname() bool {
 	/*
 		source :
 			- https://github.com/Arvanaghi/CheckPlease/blob/master/Go/hostname.go
@@ -87,34 +90,14 @@ func evade_hostname()(bool){
 	if errorout != nil {
 		os.Exit(1)
 	}
-	for _, host := range(sandbox_hostname){
+	for _, host := range sandbox_hostname {
 		if strings.Contains(strings.ToLower(hostname), strings.ToLower(host)) {
-			return true;
+			return true
 		}
 	}
-	return false;
+	return false
 }
 
-func main ()(){
+func main() {
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -18,10 +18,11 @@ import (
 // edode : true = sandbox; false = user
 
 const (
-	BLKGETSIZE64 		= 0x80081272
+	BLKGETSIZE64 = 0x80081272
 )
+
 var (
-	sandbox_files           = []string{
+	sandbox_files = []string{
 		// edode : according to https://evasions.checkpoint.com/techniques/filesystem.html#check-if-specific-files-exist
 
 		// VMware
@@ -62,7 +63,7 @@ var (
 		"drivers\\prl_pv32.sys",
 		"drivers\\prl_paravirt_32.sys",
 	}
-	sandbox_mac_addresses 	= []string {
+	sandbox_mac_addresses = []string{
 		"08:00:27", // VMWare
 		"00:0C:29", // VMWare
 		"00:1C:14", // VMWare
@@ -74,7 +75,7 @@ var (
 		"00:03:FF", // Microsoft
 		"F0:1F:AF", // Dell
 	}
-	sandbox_hostname 		= []string {
+	sandbox_hostname = []string{
 		"Sandbox",
 		"Cuckoo",
 		"Maltest",
@@ -94,17 +95,21 @@ type memStatusEx struct {
 	unused       [6]uint64
 }
 
-func is_dir(path string)(bool){
+func is_dir(path string) bool {
 	name := path
 	fi, err := os.Stat(name)
-	if err != nil { return true }
-	if fi.IsDir() {	return false }
+	if err != nil {
+		return true
+	}
+	if fi.IsDir() {
+		return false
+	}
 	return false
 }
 
-func get_drives() (r []string){
-	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ"{
-		f, err := os.Open(string(drive)+":\\")
+func get_drives() (r []string) {
+	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
+		f, err := os.Open(string(drive) + ":\\")
 		if err == nil {
 			r = append(r, string(drive))
 			f.Close()
@@ -113,13 +118,15 @@ func get_drives() (r []string){
 	return
 }
 
-func is_connected() (bool) {
+func is_connected() bool {
 	_, err := http.Get("http://1.1.1.1")
-	if err == nil { return true }
+	if err == nil {
+		return true
+	}
 	return false
 }
 
-func get_ntp_time() (time.Time) {
+func get_ntp_time() time.Time {
 	type ntp struct {
 		FirstByte, A, B, C uint8
 		D, E, F            uint32
@@ -160,7 +167,7 @@ func get_disk_size(fd uintptr, request, argp uintptr) (err error) {
 	return os.NewSyscallError("ioctl", err)
 }
 
-func evade_disk_size()(bool){
+func evade_disk_size() bool {
 	/*
 		Purpose :
 			Checks the system's storage space
@@ -172,10 +179,11 @@ func evade_disk_size()(bool){
 			- get_disk_size
 	*/
 	files, err := ioutil.ReadDir("/sys/block")
-	if err != nil {}
+	if err != nil {
+	}
 
-	for _, f := range(files){
-		disk, err := os.Open("/dev/"+f.Name())
+	for _, f := range files {
+		disk, err := os.Open("/dev/" + f.Name())
 		if err != nil {
 			continue
 		}
@@ -186,14 +194,14 @@ func evade_disk_size()(bool){
 			continue
 		}
 
-		if (size/1024/1024/1024)%100 == 0{
+		if (size/1024/1024/1024)%100 == 0 {
 			return true
 		}
 	}
 	return false
 }
 
-func evade_vm_files()(bool, int){
+func evade_vm_files() (bool, int) {
 	/*
 		Purpose :
 			Checks a VM file is present on the system
@@ -206,18 +214,20 @@ func evade_vm_files()(bool, int){
 			- is_dir
 	*/
 	var files_detected int
-	for _, drives := range (get_drives()){
-		for _, files := range(sandbox_files){
-			if !is_dir(drives+":\\Windows\\System32\\" + files){
+	for _, drives := range get_drives() {
+		for _, files := range sandbox_files {
+			if !is_dir(drives + ":\\Windows\\System32\\" + files) {
 				files_detected++
 			}
 		}
 	}
-	if files_detected > 0 { return true, files_detected }
+	if files_detected > 0 {
+		return true, files_detected
+	}
 	return false, files_detected
 }
 
-func evade_tmp() (bool) {
+func evade_tmp() bool {
 	/*
 		Purpose :
 			Checks if there is a minimum of temporary files in the temp folders
@@ -232,11 +242,13 @@ func evade_tmp() (bool) {
 	tmp_dir := "/tmp"
 	files, _ := ioutil.ReadDir(tmp_dir)
 
-	if len(files) < minimum_files { return true }
+	if len(files) < minimum_files {
+		return true
+	}
 	return false
 }
 
-func evade_utc() (bool) {
+func evade_utc() bool {
 	/*
 		Purpose :
 			Checks the offset of the time zone
@@ -248,11 +260,13 @@ func evade_utc() (bool) {
 			-
 	*/
 	_, offset := time.Now().Zone()
-	if offset == 0 { return true }
+	if offset == 0 {
+		return true
+	}
 	return false
 }
 
-func evade_time_acceleration() (bool) {
+func evade_time_acceleration() bool {
 	/*
 		Purpose :
 			Malware stays idl for a certain amount of time to evade the sandbox
@@ -266,32 +280,36 @@ func evade_time_acceleration() (bool) {
 	*/
 	idle_time := 60
 
-	if is_connected(){
+	if is_connected() {
 		first_time := get_ntp_time()
 		time.Sleep(time.Duration(idle_time*1000) * time.Millisecond)
 
 		second_time := get_ntp_time()
 		difference := second_time.Sub(first_time).Seconds()
 
-		if difference < float64(idle_time) { return true }
+		if difference < float64(idle_time) {
+			return true
+		}
 	} else {
 		first_time := time.Now()
 		time.Sleep(time.Duration(idle_time*1000) * time.Millisecond)
 		second_time := time.Since(first_time)
 
-		if time.Duration(second_time).Seconds() < float64(idle_time){ return true }
+		if time.Duration(second_time).Seconds() < float64(idle_time) {
+			return true
+		}
 	}
 	return false
 }
 
-func evade_cpu_count()(bool){
+func evade_cpu_count() bool {
 	if runtime.NumCPU() <= 2 {
 		return true
 	}
 	return false
 }
 
-func evade_mac()(bool){
+func evade_mac() bool {
 	/*
 		source :
 			- https://search.unprotect.it/technique/detecting-mac-address/
@@ -305,7 +323,7 @@ func evade_mac()(bool){
 		log.Fatal(err)
 	}
 	var is_vm bool
-	for _, s:= range sandbox_mac_addresses {
+	for _, s := range sandbox_mac_addresses {
 		for _, a := range as {
 			str := strings.ToUpper(a)
 			if str[0:8] == s[0:8] {
@@ -313,11 +331,13 @@ func evade_mac()(bool){
 			}
 		}
 	}
-	if is_vm { return true }
+	if is_vm {
+		return true
+	}
 	return false
 }
 
-func evade_hostname()(bool){
+func evade_hostname() bool {
 	/*
 		source :
 			- https://github.com/Arvanaghi/CheckPlease/blob/master/Go/hostname.go
@@ -330,19 +350,19 @@ func evade_hostname()(bool){
 	if errorout != nil {
 		os.Exit(1)
 	}
-	for _, host := range(sandbox_hostname){
+	for _, host := range sandbox_hostname {
 		if strings.Contains(strings.ToLower(hostname), strings.ToLower(host)) {
-			return true;
+			return true
 		}
 	}
-	return false;
+	return false
 }
 
-func passed(evading_func string)(){
+func passed(evading_func string) {
 	fmt.Println("[+] Evaded ", evading_func, "\n")
 }
 
-func failed(evading_func string)(){
+func failed(evading_func string) {
 	fmt.Println("[-] Not Evaded ", evading_func, "\n")
 }
 
@@ -398,12 +418,3 @@ func main() {
 	}
 	fmt.Scanln("Done...")
 }
-
-
-
-
-
-
-
-
-
