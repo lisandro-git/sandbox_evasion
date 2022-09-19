@@ -1,4 +1,4 @@
-package main
+package evader
 
 import (
 	"fmt"
@@ -20,13 +20,13 @@ var (
 	getAsyncKeyState        = user32.NewProc("GetAsyncKeyState")
 )
 
-func get_window(funcName string) uintptr {
+func getWindow(funcName string) uintptr {
 	proc := user32.NewProc(funcName)
 	hwnd, _, _ := proc.Call()
 	return hwnd
 }
 
-func evade_screen_size() bool {
+func evadeScreenSize() bool {
 	/*
 		Purpose :
 			Detects the screen size
@@ -49,7 +49,7 @@ func evade_screen_size() bool {
 	return false
 }
 
-func evade_foreground_window() bool {
+func evadeForegroundWindow() bool {
 	/*
 		Purpose :
 			Detects if the user as changed window in the last 60 seconds
@@ -58,11 +58,11 @@ func evade_foreground_window() bool {
 		linked variables :
 			- user32
 		linked functions :
-			- get_window
+			- getWindow
 	*/
 	var temp uintptr
 	for i := 0; i <= 20; i++ {
-		if hwnd := get_window("GetForegroundWindow"); hwnd != 0 {
+		if hwnd := getWindow("GetForegroundWindow"); hwnd != 0 {
 			if hwnd != temp && temp != 0 {
 				return true
 			}
@@ -73,7 +73,7 @@ func evade_foreground_window() bool {
 	return false
 }
 
-func evade_system_memory() bool {
+func evadeSystemMemory() bool {
 	/*
 		Purpose :
 			checking the system's RAM memory
@@ -98,7 +98,7 @@ func evade_system_memory() bool {
 	return false
 }
 
-func evade_printer() bool {
+func evadePrinter() bool {
 	/*
 		Purpose :
 			Checks wether a printer has been installed in the machine
@@ -127,7 +127,7 @@ func evade_printer() bool {
 	return false
 }
 
-func evade_clicks_count() bool {
+func evadeClicksCount() bool {
 	/*
 		Purpose :
 			Checks if there is any user clicks
@@ -140,102 +140,102 @@ func evade_clicks_count() bool {
 			-
 	*/
 	var count int
-	var max_idle_time = 120
+	var maxIdleTime = 120
 	t := time.Now()
 	for count <= 10 {
-		left_click, _, _ := getAsyncKeyState.Call(uintptr(0x1))
-		right_click, _, _ := getAsyncKeyState.Call(uintptr(0x2))
-		if left_click%2 == 1 {
+		leftClick, _, _ := getAsyncKeyState.Call(uintptr(0x1))
+		rightClick, _, _ := getAsyncKeyState.Call(uintptr(0x2))
+		if leftClick%2 == 1 {
 			count += 1
 			t = time.Now()
 		}
-		if right_click%2 == 1 {
+		if rightClick%2 == 1 {
 			count += 1
 			t = time.Now()
 		}
-		if int(time.Since(t).Seconds()) > max_idle_time {
+		if int(time.Since(t).Seconds()) > maxIdleTime {
 			return true
 		}
 	}
 	return false
 }
 
-func main() {
+func ExecuteAll() {
 	fmt.Println("Evading Screen Size")
-	if !evade_screen_size() {
+	if !evadeScreenSize() {
 		passed("Screen Size")
 	} else {
 		failed("Screen Size")
 	}
 	fmt.Println(("Evading Foreground Window"))
-	if !evade_foreground_window() {
+	if !evadeForegroundWindow() {
 		passed("foreground window")
 	} else {
 		failed("foreground window")
 	}
 	fmt.Println(("Evading Disk Size"))
-	if !evade_disk_size() {
+	if !evadeDiskSize() {
 		passed("disk_size")
 	} else {
 		failed("disk_size")
 	}
 	fmt.Println(("Evading Tmp"))
-	if !evade_tmp() {
+	if !evadeTmp() {
 		passed("tmp")
 	} else {
 		failed("tmp")
 	}
 	fmt.Println(("Evading UTC"))
-	if !evade_utc() {
+	if !evadeUtc() {
 		passed("UTC")
 	} else {
 		failed("UTC")
 	}
 	fmt.Println(("Evading System Memory"))
-	if !evade_system_memory() {
+	if !evadeSystemMemory() {
 		passed("system_memory")
 	} else {
 		failed("system_memory")
 	}
 	fmt.Println(("Evading Printer"))
-	if !evade_printer() {
+	if !evadePrinter() {
 		passed("printer")
 	} else {
 		failed("printer")
 	}
 	fmt.Println(("Evading CPU Count"))
-	if !evade_cpu_count() {
+	if !evadeCpuCount() {
 		passed("cpu_count")
 	} else {
 		failed("cpu_count")
 	}
 	fmt.Println(("Evading MAC"))
-	if !evade_mac() {
+	if !evadeMac() {
 		passed("MAC")
 	} else {
 		failed("MAC")
 	}
 	fmt.Println(("Evading Hostname"))
-	if !evade_hostname() {
-		passed("evade_hostname")
+	if !evadeHostname() {
+		passed("evadeHostname")
 	} else {
-		failed("evade_hostname")
+		failed("evadeHostname")
 	}
 	fmt.Println(("Evading VM Files"))
-	b, _ := evade_vm_files()
+	b, _ := evadeVmFiles()
 	if !b {
 		passed("vm_files")
 	} else {
 		failed("vm_files")
 	}
 	fmt.Println(("Evading Clicks Count"))
-	if !evade_clicks_count() {
+	if !evadeClicksCount() {
 		passed("clicks_count")
 	} else {
 		failed("clicks_count")
 	}
 	fmt.Println(("Evading Time Acceleration"))
-	if !evade_time_acceleration() {
+	if !evadeTimeAcceleration() {
 		passed("Time Acceleration")
 	} else {
 		failed("Time Acceleration")

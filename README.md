@@ -18,7 +18,7 @@ Some codes are related to other projects that I have done. They are available on
 - [LCJ](https://github.com/lisandro-git/LCJ) - My Ransomware first developed as a school project
 
 # 🚀 Sandbox Evasion Module
-Code that is intended to be used inside malwares in order to escapes sandboxes.\
+Code that is intended to be used inside a malware in order to escape sandboxes.\
 You will find 2 pieces of code that you can launch to test the evasion techniques.\
 The code has to be implemented inside your malware, and has to be modified to match your requirements.
 
@@ -26,21 +26,21 @@ The code has to be implemented inside your malware, and has to be modified to ma
 The table below shows which evasion techniques works on which OS. As said previously, it has been tested and re-tested multiple times.\
 I won't say that it is bug-free, but as per my advanced tests, it has none for now.
 
-|   Evasion Techniques   | Windows | Linux |
-|------------------------|---------|-------|
-|evade_vm_files          |  ✅  | ✅ |
-|evade_hostname          |  ✅  | ✅ |
-|evade_mac               |  ✅  | ✅ |
-|evade_cpu_count         |  ✅  | ✅ |
-|evade_time_acceleration |  ✅  | ✅ |
-|evade_tmp               |  ✅  | ✅ |
-|evade_utc               |  ✅  | ✅ |
-|evade_disk_size         |  ✅  | ✅ |
-|evade_screen_size       |  ✅  |  ⬜️ |
-|evade_foreground_window |  ✅  |  ⬜️ |
-|evade_system_memory     |  ✅  |  ⬜️ |
-|evade_printer           |  ✅  |  ⬜️ |
-|evade_clicks_count      |  ✅  |  ⬜️ |
+| Evasion Techniques      | Windows | Linux |
+|-------------------------|---------|-------|
+| evade_vm_files          | ✅       | ✅   |
+| evade_hostname          | ✅       | ✅   |
+| evade_mac               | ✅       | ✅   |
+| evade_cpu_count         | ✅       | ✅   |
+| evade_time_acceleration | ✅       | ✅   |
+| evade_tmp               | ✅       | ✅   |
+| evade_utc               | ✅       | ✅   |
+| evade_disk_size         | ✅       | ✅   |
+| evade_screen_size       | ✅       | ⬜️    |
+| evade_foreground_window | ✅       | ⬜️    |
+| evade_system_memory     | ✅       | ⬜️    |
+| evade_printer           | ✅       | ⬜️    |
+| evade_clicks_count      | ✅       | ⬜️    |
 
 # 🖊 Authors
 - **[Edode](https://www.github.com/lisandro-git)**

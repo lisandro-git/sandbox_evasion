@@ -1,4 +1,4 @@
-package main
+package evader
 
 import (
 	"encoding/binary"
@@ -22,7 +22,7 @@ type memStatusEx struct {
 	unused       [6]uint64
 }
 
-func is_dir(path string) bool {
+func isDir(path string) bool {
 	name := path
 	fi, err := os.Stat(name)
 	if err != nil {
@@ -34,7 +34,7 @@ func is_dir(path string) bool {
 	return false
 }
 
-func get_drives() (r []string) {
+func getDrives() (r []string) {
 	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
 		f, err := os.Open(string(drive) + ":\\")
 		if err == nil {
@@ -45,7 +45,7 @@ func get_drives() (r []string) {
 	return
 }
 
-func is_connected() bool {
+func isConnected() bool {
 	_, err := http.Get("http://1.1.1.1")
 	if err == nil {
 		return true
@@ -53,7 +53,7 @@ func is_connected() bool {
 	return false
 }
 
-func get_ntp_time() time.Time {
+func getNtpTime() time.Time {
 	type ntp struct {
 		FirstByte, A, B, C uint8
 		D, E, F            uint32
@@ -71,7 +71,7 @@ func get_ntp_time() time.Time {
 	return time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC).Add(time.Duration(((transmit.ReceiveTime >> 32) * 1000000000)))
 }
 
-func get_mac_address() ([]string, error) {
+func getMacAddress() ([]string, error) {
 	ifas, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func get_mac_address() ([]string, error) {
 	return as, nil
 }
 
-func evade_disk_size() bool {
+func evadeDiskSize() bool {
 	/*
 		Purpose :
 			Checks the system's storage space
@@ -95,7 +95,7 @@ func evade_disk_size() bool {
 		linked variable :
 			- BLKGETSIZE64
 		linked functions :
-			- get_disk_size
+			- getDiskSize
 	*/
 	files, err := ioutil.ReadDir("/sys/block")
 	if err != nil {
@@ -109,7 +109,7 @@ func evade_disk_size() bool {
 		defer disk.Close()
 
 		var size uint64
-		if err := get_disk_size(disk.Fd(), BLKGETSIZE64, uintptr(unsafe.Pointer(&size))); err != nil {
+		if err := getDiskSize(disk.Fd(), BLKGETSIZE64, uintptr(unsafe.Pointer(&size))); err != nil {
 			continue
 		}
 
@@ -120,7 +120,7 @@ func evade_disk_size() bool {
 	return false
 }
 
-func evade_vm_files() (bool, int) {
+func evadeVmFiles() (bool, int) {
 	/*
 		Purpose :
 			Checks a VM file is present on the system
@@ -129,24 +129,24 @@ func evade_vm_files() (bool, int) {
 		linked variables :
 			- sandbox_files
 		linked functions :
-			- get_drives
-			- is_dir
+			- getDrives
+			- isDir
 	*/
-	var files_detected int
-	for _, drives := range get_drives() {
+	var filesDetected int
+	for _, drives := range getDrives() {
 		for _, files := range generics.SandboxFiles {
-			if !is_dir(drives + ":\\Windows\\System32\\" + files) {
-				files_detected++
+			if !isDir(drives + ":\\Windows\\System32\\" + files) {
+				filesDetected++
 			}
 		}
 	}
-	if files_detected > 0 {
-		return true, files_detected
+	if filesDetected > 0 {
+		return true, filesDetected
 	}
-	return false, files_detected
+	return false, filesDetected
 }
 
-func evade_tmp() bool {
+func evadeTmp() bool {
 	/*
 		Purpose :
 			Checks if there is a minimum of temporary files in the temp folders
@@ -157,17 +157,17 @@ func evade_tmp() bool {
 		linked functions :
 			-
 	*/
-	minimum_files := 15
-	tmp_dir := "/tmp"
-	files, _ := ioutil.ReadDir(tmp_dir)
+	minimumFiles := 15
+	tmpDir := "/tmp"
+	files, _ := ioutil.ReadDir(tmpDir)
 
-	if len(files) < minimum_files {
+	if len(files) < minimumFiles {
 		return true
 	}
 	return false
 }
 
-func evade_utc() bool {
+func evadeUtc() bool {
 	/*
 		Purpose :
 			Checks the offset of the time zone
@@ -185,7 +185,7 @@ func evade_utc() bool {
 	return false
 }
 
-func evade_time_acceleration() bool {
+func evadeTimeAcceleration() bool {
 	/*
 		Purpose :
 			Malware stays idl for a certain amount of time to evade the sandbox
@@ -194,50 +194,47 @@ func evade_time_acceleration() bool {
 		linked variable :
 			-
 		linked functions :
-			- get_ntp_time
-			- is_connected
+			- getNtpTime
+			- isConnected
 	*/
-	idle_time := 60
+	idleTime := 60
 
-	if is_connected() {
-		first_time := get_ntp_time()
-		time.Sleep(time.Duration(idle_time*1000) * time.Millisecond)
+	if isConnected() {
+		firstTime := getNtpTime()
+		time.Sleep(time.Duration(idleTime*1000) * time.Millisecond)
+		secondTime := getNtpTime()
 
-		second_time := get_ntp_time()
-		difference := second_time.Sub(first_time).Seconds()
-
-		if difference < float64(idle_time) {
+		if secondTime.Sub(firstTime).Seconds() < float64(idleTime) {
 			return true
 		}
 	} else {
-		first_time := time.Now()
-		time.Sleep(time.Duration(idle_time*1000) * time.Millisecond)
-		second_time := time.Since(first_time)
+		firstTime := time.Now()
+		time.Sleep(time.Duration(idleTime*1000) * time.Millisecond)
 
-		if time.Duration(second_time).Seconds() < float64(idle_time) {
+		if time.Since(firstTime).Seconds() < float64(idleTime) {
 			return true
 		}
 	}
 	return false
 }
 
-func evade_cpu_count() bool {
+func evadeCpuCount() bool {
 	if runtime.NumCPU() <= 2 {
 		return true
 	}
 	return false
 }
 
-func evade_mac() bool {
+func evadeMac() bool {
 	/*
 		source :
 			- https://search.unprotect.it/technique/detecting-mac-address/
 		linked variables :
 			- sandbox_mac_addresses
 		linked functions :
-			- get_mac_address
+			- getMacAddress
 	*/
-	as, err := get_mac_address()
+	as, err := getMacAddress()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -256,7 +253,7 @@ func evade_mac() bool {
 	return false
 }
 
-func evade_hostname() bool {
+func evadeHostname() bool {
 	/*
 		source :
 			- https://github.com/Arvanaghi/CheckPlease/blob/master/Go/hostname.go
@@ -265,8 +262,8 @@ func evade_hostname() bool {
 		linked functions :
 			-
 	*/
-	hostname, errorout := os.Hostname()
-	if errorout != nil {
+	hostname, err := os.Hostname()
+	if err != nil {
 		os.Exit(1)
 	}
 	for _, host := range generics.SandboxHostname {
@@ -277,10 +274,10 @@ func evade_hostname() bool {
 	return false
 }
 
-func passed(evading_func string) {
-	fmt.Println("[+] Evaded ", evading_func)
+func passed(evadingFunc string) {
+	fmt.Println("[+] Evaded ", evadingFunc)
 }
 
-func failed(evading_func string) {
-	fmt.Println("[-] Not Evaded ", evading_func)
+func failed(evadingFunc string) {
+	fmt.Println("[-] Not Evaded ", evadingFunc)
 }

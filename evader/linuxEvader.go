@@ -1,4 +1,4 @@
-package main
+package evader
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ const (
 	BLKGETSIZE64 = 0x80081272
 )
 
-func get_disk_size(fd uintptr, request, argp uintptr) (err error) {
+func getDiskSize(fd uintptr, request, argp uintptr) (err error) {
 	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, request, argp)
 	if errno != 0 {
 		err = errno
@@ -20,52 +20,52 @@ func get_disk_size(fd uintptr, request, argp uintptr) (err error) {
 	return os.NewSyscallError("ioctl", err)
 }
 
-func main() {
+func ExecuteAll() {
 	fmt.Println(("Evading Tmp"))
-	if !evade_tmp() {
+	if !evadeTmp() {
 		passed("tmp")
 	} else {
 		failed("tmp")
 	}
 	fmt.Println(("Evading UTC"))
-	if !evade_utc() {
+	if !evadeUtc() {
 		passed("UTC")
 	} else {
 		failed("UTC")
 	}
 	fmt.Println(("Evading CPU Count"))
-	if !evade_cpu_count() {
+	if !evadeCpuCount() {
 		passed("cpu_count")
 	} else {
 		failed("cpu_count")
 	}
 	fmt.Println(("Evading MAC"))
-	if !evade_mac() {
+	if !evadeMac() {
 		passed("MAC")
 	} else {
 		failed("MAC")
 	}
 	fmt.Println(("Evading Hostname"))
-	if !evade_hostname() {
-		passed("evade_hostname")
+	if !evadeHostname() {
+		passed("evadeHostname")
 	} else {
-		failed("evade_hostname")
+		failed("evadeHostname")
 	}
 	fmt.Println(("Evading Disk Size"))
-	if !evade_disk_size() {
+	if !evadeDiskSize() {
 		passed("disk_size")
 	} else {
 		failed("disk_size")
 	}
 	fmt.Println(("Evading VM Files"))
-	b, _ := evade_vm_files()
+	b, _ := evadeVmFiles()
 	if !b {
 		passed("vm_files")
 	} else {
 		failed("vm_files")
 	}
 	fmt.Println(("Evading Time Acceleration"))
-	if !evade_time_acceleration() {
+	if !evadeTimeAcceleration() {
 		passed("Time Acceleration")
 	} else {
 		failed("Time Acceleration")
