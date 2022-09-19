@@ -1,17 +1,9 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"golang.org/x/sys/windows/registry"
-	"io/ioutil"
-	"log"
 	"math"
-	"net"
-	"net/http"
-	"os"
-	"runtime"
-	"strings"
 	"syscall"
 	"time"
 	"unsafe"
@@ -26,173 +18,12 @@ var (
 	GetDiskFreeSpaceExW     = kernel_32.MustFindProc("GetDiskFreeSpaceExW")
 	globalMemoryStatusEx, _ = kernel_32.FindProc("GlobalMemoryStatusEx")
 	getAsyncKeyState        = user32.NewProc("GetAsyncKeyState")
-	sandbox_files           = []string{
-		// edode : according to https://evasions.checkpoint.com/techniques/filesystem.html#check-if-specific-files-exist
-
-		// VMware
-		"drivers\\vmsrvc.sys",
-		"drivers\\vpc-s3.sys",
-		"drivers\\vmmouse.sys",
-		"drivers\\vmnet.sys",
-		"drivers\\vmxnet.sys",
-		"drivers\\vmhgfs.sys",
-		"drivers\\vmx86.sys",
-		"drivers\\hgfs.sys",
-
-		// VirtualBox
-		"drivers\\VBoxMouse.sys",
-		"drivers\\VBoxGuest.sys",
-		"drivers\\VBoxSF.sys",
-		"drivers\\VBoxVideo.sys",
-		"vboxdisp.dll",
-		"vboxhook.dll",
-		"vboxmrxnp.dll",
-		"vboxogl.dll",
-		"vboxoglarrayspu.dll",
-		"vboxoglcrutil.dll",
-		"vboxoglerrorspu.dll",
-		"vboxoglfeedbackspu.dll",
-		"vboxoglpackspu.dll",
-		"vboxoglpassthroughspu.dll",
-		"vboxservice.exe",
-		"vboxtray.exe",
-		"VBoxControl.exe",
-
-		// Parallels
-		"drivers\\prleth.sys",
-		"drivers\\prlfs.sys",
-		"drivers\\prlmouse.sys",
-		"drivers\\prlvideo.sys",
-		"drivers\\prltime.sys",
-		"drivers\\prl_pv32.sys",
-		"drivers\\prl_paravirt_32.sys",
-	}
-	sandbox_mac_addresses = []string{
-		"08:00:27", // VMWare
-		"00:0C:29", // VMWare
-		"00:1C:14", // VMWare
-		"00:50:56", // VMWare
-		"00:05:69", // VMWare
-		"08:00:27", // VirtualBox
-		"00:16:3E", // Xensources
-		"00:1C:42", // Parallels
-		"00:03:FF", // Microsoft
-		"F0:1F:AF", // Dell
-	}
-	sandbox_hostname = []string{
-		"Sandbox",
-		"Cuckoo",
-		"Maltest",
-		"Malware",
-		"malsand",
-		"ClonePC",
-		"Fortinet",
-		"Fortisandbox",
-		"VIRUS",
-	}
 )
-
-type memStatusEx struct {
-	dwLength     uint32
-	dwMemoryLoad uint32
-	ullTotalPhys uint64
-	unused       [6]uint64
-}
-
-func is_dir(path string) bool {
-	name := path
-	fi, err := os.Stat(name)
-	if err != nil {
-		return true
-	}
-	if fi.IsDir() {
-		return false
-	}
-	return false
-}
-
-func get_drives() (r []string) {
-	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
-		f, err := os.Open(string(drive) + ":\\")
-		if err == nil {
-			r = append(r, string(drive))
-			f.Close()
-		}
-	}
-	return
-}
-
-func is_connected() bool {
-	_, err := http.Get("http://1.1.1.1")
-	if err == nil {
-		return true
-	}
-	return false
-}
 
 func get_window(funcName string) uintptr {
 	proc := user32.NewProc(funcName)
 	hwnd, _, _ := proc.Call()
 	return hwnd
-}
-
-func get_ntp_time() time.Time {
-	type ntp struct {
-		FirstByte, A, B, C uint8
-		D, E, F            uint32
-		G, H               uint64
-		ReceiveTime        uint64
-		J                  uint64
-	}
-	sock, _ := net.Dial("udp", "us.pool.ntp.org:123")
-	sock.SetDeadline(time.Now().Add((2 * time.Second)))
-	defer sock.Close()
-	transmit := new(ntp)
-	transmit.FirstByte = 0x1b
-	binary.Write(sock, binary.BigEndian, transmit)
-	binary.Read(sock, binary.BigEndian, transmit)
-	return time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC).Add(time.Duration(((transmit.ReceiveTime >> 32) * 1000000000)))
-}
-
-func get_mac_address() ([]string, error) {
-	ifas, err := net.Interfaces()
-	if err != nil {
-		return nil, err
-	}
-	var as []string
-	for _, ifa := range ifas {
-		a := ifa.HardwareAddr.String()
-		if a != "" {
-			as = append(as, a)
-		}
-	}
-	return as, nil
-}
-
-func evade_vm_files() (bool, int) {
-	/*
-		Purpose :
-			Checks a VM file is present on the system
-		source :
-			-
-		linked variables :
-			- sandbox_files
-		linked functions :
-			- get_drives
-			- is_dir
-	*/
-	var files_detected int
-	for _, drives := range get_drives() {
-		for _, files := range sandbox_files {
-			if !is_dir(drives + ":\\Windows\\System32\\" + files) {
-				files_detected++
-			}
-		}
-	}
-	if files_detected > 0 {
-		return true, files_detected
-	}
-	return false, files_detected
 }
 
 func evade_screen_size() bool {
@@ -238,118 +69,6 @@ func evade_foreground_window() bool {
 			temp = hwnd
 		}
 		time.Sleep(time.Second * 10)
-	}
-	return false
-}
-
-func evade_disk_size() bool {
-	/*
-		Purpose :
-			Checks the system's storage space
-		source :
-			-
-		linked variable :
-			- kernel_32
-			- GetDiskFreeSpaceExW
-		linked functions :
-			-
-	*/
-	var free, total, avail int64
-
-	path_pointer, _ := syscall.UTF16PtrFromString("C:\\")
-	GetDiskFreeSpaceExW.Call(
-		uintptr(unsafe.Pointer(path_pointer)),
-		uintptr(unsafe.Pointer(&free)),
-		uintptr(unsafe.Pointer(&total)),
-		uintptr(unsafe.Pointer(&avail)),
-	)
-
-	total_disk_size := total / 1024 / 1024 / 1024
-
-	var i int64 = 0
-	fmt.Println("Disk size = ", total_disk_size, "GB")
-	for ; i < 500; i = i + 10 {
-		if i == total_disk_size {
-			return true
-		}
-	}
-	return false
-}
-
-func evade_tmp() bool {
-	/*
-		Purpose :
-			Checks if there is a minimum of temporary files in the temp folders
-		source :
-			-
-		linked variable :
-			-
-		linked functions :
-			-
-	*/
-	minimum_files := 15
-	tmp_dir := "/tmp"
-	if runtime.GOOS == "windows" {
-		tmp_dir = `C:\windows\temp`
-	}
-	files, _ := ioutil.ReadDir(tmp_dir)
-	fmt.Println("Number of TMP files = ", len(files))
-	if len(files) < minimum_files {
-		return true
-	}
-	return false
-}
-
-func evade_utc() bool {
-	/*
-		Purpose :
-			Checks the offset of the time zone
-		source :
-			-
-		linked variable :
-			-
-		linked functions :
-			-
-	*/
-	_, offset := time.Now().Zone()
-	if offset == 0 {
-		return true
-	}
-	return false
-}
-
-func evade_time_acceleration() bool {
-	/*
-		Purpose :
-			Malware stays idl for a certain amount of time to evade the sandbox
-		source :
-			-
-		linked variable :
-			-
-		linked functions :
-			- get_ntp_time
-			- is_connected
-	*/
-	idle_time := 10 // edode : for testing purposes, else, it is a 60 secs
-
-	if is_connected() {
-		first_time := get_ntp_time()
-		time.Sleep(time.Duration(idle_time*1000) * time.Millisecond)
-
-		second_time := get_ntp_time()
-		difference := second_time.Sub(first_time).Seconds()
-
-		if difference < float64(idle_time) {
-			return true
-		}
-	} else {
-		first_time := time.Now()
-		time.Sleep(time.Duration(idle_time*1000) * time.Millisecond)
-		second_time := time.Since(first_time)
-
-		if time.Duration(second_time).Seconds() < float64(idle_time) {
-			return true
-		}
 	}
 	return false
 }
@@ -408,14 +127,6 @@ func evade_printer() bool {
 	return false
 }
 
-func evade_cpu_count() bool {
-	fmt.Println("Number of CPUs = ", runtime.NumCPU())
-	if runtime.NumCPU() <= 2 {
-		return true
-	}
-	return false
-}
-
 func evade_clicks_count() bool {
 	/*
 		Purpose :
@@ -447,65 +158,6 @@ func evade_clicks_count() bool {
 		}
 	}
 	return false
-}
-
-func evade_mac() bool {
-	/*
-		source :
-			- https://search.unprotect.it/technique/detecting-mac-address/
-		linked variables :
-			- sandbox_mac_addresses
-		linked functions :
-			- get_mac_address
-	*/
-	sys_mac_addr, err := get_mac_address()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var is_vm bool
-	for _, blacklist_mac := range sandbox_mac_addresses {
-		for _, mac := range sys_mac_addr {
-			fmt.Println(" - ", mac)
-			str := strings.ToUpper(mac)
-			if str[0:8] == blacklist_mac[0:8] {
-				is_vm = true
-			}
-		}
-	}
-	if is_vm {
-		return true
-	}
-	return false
-}
-
-func evade_hostname() bool {
-	/*
-		source :
-			- https://github.com/Arvanaghi/CheckPlease/blob/master/Go/hostname.go
-		linked variables :
-			- sandbox_hostname
-		linked functions :
-			-
-	*/
-	hostname, errorout := os.Hostname()
-	if errorout != nil {
-		os.Exit(1)
-	}
-	fmt.Println("Hostname = ", hostname)
-	for _, host := range sandbox_hostname {
-		if strings.Contains(strings.ToLower(hostname), strings.ToLower(host)) {
-			return true
-		}
-	}
-	return false
-}
-
-func passed(evading_func string) {
-	fmt.Println("[+] Evaded ", evading_func, "\n")
-}
-
-func failed(evading_func string) {
-	fmt.Println("[-] Not Evaded ", evading_func, "\n")
 }
 
 func main() {

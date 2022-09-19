@@ -9,83 +9,10 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sandboxEvasion/generics"
 	"strings"
-	"syscall"
 	"time"
 	"unsafe"
-)
-
-// edode : true = sandbox; false = user
-
-const (
-	BLKGETSIZE64 = 0x80081272
-)
-
-var (
-	sandbox_files = []string{
-		// edode : according to https://evasions.checkpoint.com/techniques/filesystem.html#check-if-specific-files-exist
-
-		// VMware
-		"drivers\\vmsrvc.sys",
-		"drivers\\vpc-s3.sys",
-		"drivers\\vmmouse.sys",
-		"drivers\\vmnet.sys",
-		"drivers\\vmxnet.sys",
-		"drivers\\vmhgfs.sys",
-		"drivers\\vmx86.sys",
-		"drivers\\hgfs.sys",
-
-		// VirtualBox
-		"drivers\\VBoxMouse.sys",
-		"drivers\\VBoxGuest.sys",
-		"drivers\\VBoxSF.sys",
-		"drivers\\VBoxVideo.sys",
-		"vboxdisp.dll",
-		"vboxhook.dll",
-		"vboxmrxnp.dll",
-		"vboxogl.dll",
-		"vboxoglarrayspu.dll",
-		"vboxoglcrutil.dll",
-		"vboxoglerrorspu.dll",
-		"vboxoglfeedbackspu.dll",
-		"vboxoglpackspu.dll",
-		"vboxoglpassthroughspu.dll",
-		"vboxservice.exe",
-		"vboxtray.exe",
-		"VBoxControl.exe",
-
-		// Parallels
-		"drivers\\prleth.sys",
-		"drivers\\prlfs.sys",
-		"drivers\\prlmouse.sys",
-		"drivers\\prlvideo.sys",
-		"drivers\\prltime.sys",
-		"drivers\\prl_pv32.sys",
-		"drivers\\prl_paravirt_32.sys",
-	}
-	sandbox_mac_addresses = []string{
-		"08:00:27", // VMWare
-		"00:0C:29", // VMWare
-		"00:1C:14", // VMWare
-		"00:50:56", // VMWare
-		"00:05:69", // VMWare
-		"08:00:27", // VirtualBox
-		"00:16:3E", // Xensources
-		"00:1C:42", // Parallels
-		"00:03:FF", // Microsoft
-		"F0:1F:AF", // Dell
-	}
-	sandbox_hostname = []string{
-		"Sandbox",
-		"Cuckoo",
-		"Maltest",
-		"Malware",
-		"malsand",
-		"ClonePC",
-		"Fortinet",
-		"Fortisandbox",
-		"VIRUS",
-	}
 )
 
 type memStatusEx struct {
@@ -159,14 +86,6 @@ func get_mac_address() ([]string, error) {
 	return as, nil
 }
 
-func get_disk_size(fd uintptr, request, argp uintptr) (err error) {
-	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, request, argp)
-	if errno != 0 {
-		err = errno
-	}
-	return os.NewSyscallError("ioctl", err)
-}
-
 func evade_disk_size() bool {
 	/*
 		Purpose :
@@ -215,7 +134,7 @@ func evade_vm_files() (bool, int) {
 	*/
 	var files_detected int
 	for _, drives := range get_drives() {
-		for _, files := range sandbox_files {
+		for _, files := range generics.SandboxFiles {
 			if !is_dir(drives + ":\\Windows\\System32\\" + files) {
 				files_detected++
 			}
@@ -323,7 +242,7 @@ func evade_mac() bool {
 		log.Fatal(err)
 	}
 	var is_vm bool
-	for _, s := range sandbox_mac_addresses {
+	for _, s := range generics.SandboxMacAddresses {
 		for _, a := range as {
 			str := strings.ToUpper(a)
 			if str[0:8] == s[0:8] {
@@ -350,7 +269,7 @@ func evade_hostname() bool {
 	if errorout != nil {
 		os.Exit(1)
 	}
-	for _, host := range sandbox_hostname {
+	for _, host := range generics.SandboxHostname {
 		if strings.Contains(strings.ToLower(hostname), strings.ToLower(host)) {
 			return true
 		}
@@ -358,6 +277,10 @@ func evade_hostname() bool {
 	return false
 }
 
-func main() {
+func passed(evading_func string) {
+	fmt.Println("[+] Evaded ", evading_func)
+}
 
+func failed(evading_func string) {
+	fmt.Println("[-] Not Evaded ", evading_func)
 }
